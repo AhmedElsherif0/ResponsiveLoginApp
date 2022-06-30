@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_translate/flutter_translate.dart';
@@ -9,26 +8,27 @@ import 'package:magdsoft_flutter_structure/business_logic/global_cubit/global_cu
 import 'package:magdsoft_flutter_structure/data/local/cache_helper.dart';
 import 'package:magdsoft_flutter_structure/data/remote/dio_helper.dart';
 import 'package:magdsoft_flutter_structure/presentation/router/app_router.dart';
+import 'package:magdsoft_flutter_structure/presentation/styles/system_chrome.dart';
+import 'package:magdsoft_flutter_structure/presentation/styles/themes.dart';
 import 'package:magdsoft_flutter_structure/presentation/widget/toast.dart';
 import 'package:sizer/sizer.dart';
 import 'package:intl/intl.dart';
 
-
-late LocalizationDelegate delegate;
+late LocalizationDelegate localizationDelegate;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   BlocOverrides.runZoned(
-        () async {
+    () async {
       DioHelper.init();
       await CacheHelper.init();
       final locale =
           CacheHelper.getDataFromSharedPreference(key: 'language') ?? "ar";
-      delegate = await LocalizationDelegate.create(
+      localizationDelegate = await LocalizationDelegate.create(
         fallbackLocale: locale,
         supportedLocales: ['ar', 'en'],
       );
-      await delegate.changeLocale(Locale(locale));
+      await localizationDelegate.changeLocale(Locale(locale));
       runApp(MyApp(
         appRouter: AppRouter(),
       ));
@@ -49,13 +49,14 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with OrientationSystem {
   @override
   void initState() {
     super.initState();
-    Intl.defaultLocale = delegate.currentLocale.languageCode;
-
-    delegate.onLocaleChanged = (Locale value) async {
+    hideStatusBar();
+    lockOrientation();
+    Intl.defaultLocale = localizationDelegate.currentLocale.languageCode;
+    localizationDelegate.onLocaleChanged = (Locale value) async {
       try {
         setState(() {
           Intl.defaultLocale = value.languageCode;
@@ -70,18 +71,16 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(
-          create: ((context) => GlobalCubit()),
-        ),
+        BlocProvider(create: ((context) => GlobalCubit())),
       ],
-      child: BlocConsumer<GlobalCubit, GlobalState>(
+      child: BlocConsumer<GlobalCubit, GlobalStates>(
         listener: (context, state) {},
         builder: (context, state) {
           return Sizer(
             builder: (context, orientation, deviceType) {
               return LocalizedApp(
-                delegate,
-                LayoutBuilder(builder: (context, constraints) {
+                localizationDelegate,
+                LayoutBuilder(builder: (BuildContext context, constraints) {
                   return MaterialApp(
                     debugShowCheckedModeBanner: false,
                     title: 'Werash',
@@ -90,22 +89,12 @@ class _MyAppState extends State<MyApp> {
                       DefaultCupertinoLocalizations.delegate,
                       GlobalMaterialLocalizations.delegate,
                       GlobalWidgetsLocalizations.delegate,
-                      delegate,
+                      localizationDelegate,
                     ],
-                    locale: delegate.currentLocale,
-                    supportedLocales: delegate.supportedLocales,
-                    onGenerateRoute: widget.appRouter.onGenerateRoute,
-                    theme: ThemeData(
-                      fontFamily: 'cairo',
-                      //scaffoldBackgroundColor: AppColors.white,
-                      appBarTheme: const AppBarTheme(
-                        elevation: 0.0,
-                        systemOverlayStyle: SystemUiOverlayStyle(
-                          //statusBarColor: AppColors.transparent,
-                          statusBarIconBrightness: Brightness.dark,
-                        ),
-                      ),
-                    ),
+                    locale: localizationDelegate.currentLocale,
+                    supportedLocales: localizationDelegate.supportedLocales,
+                    onGenerateRoute: AppRouter.onGenerateRoute,
+                    theme: ThemesStyle.lightTheme,
                   );
                 }),
               );

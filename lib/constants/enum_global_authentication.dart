@@ -1,0 +1,1 @@
+enum GlobalAuth { login, register }
